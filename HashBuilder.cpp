@@ -7,10 +7,13 @@
 */
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <SipHash_2_4.h>
 
 #include "Configuration.h"
 #include "HashBuilder.h"
+
+using namespace ArduinoJson::Internals;
 
 HashBuilder::HashBuilder()
 {
@@ -22,18 +25,19 @@ const char* HashBuilder::getHash()
 {
     sipHash.finish();
 
-    for (int i = 0; i < 8; i++)
-        snprintf(hash + 2 * i, 3, "%02X", sipHash.result[i]);
+    StringBuilder sb(hash, sizeof(hash));
 
-    hash[16] = 0;
+    for (int i = 0; i < 8; i++) {
+        byte c = sipHash.result[i];
+        if (c < 16) sb.write('0');
+        sb.print(c, HEX);
+    }
+
     return hash;
 }
 
-void HashBuilder::print(const char* source)
+size_t HashBuilder::write(uint8_t c)
 {
-    while (*source)
-    {
-        sipHash.updateHash((byte) *source);
-        source++;
-    }
+    sipHash.updateHash(c);
+    return 1;
 }
